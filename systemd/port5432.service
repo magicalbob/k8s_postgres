@@ -1,0 +1,15 @@
+[Unit]
+Description=Kubectl Port Forward 5432
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=vagrant
+Group=vagrant
+Type=simple
+ExecStart=/bin/bash -c "kubectl port-forward service/postgres -n postgresql --address 192.168.56.201 5432:5432"
+Restart=always
+RestartSec=5s
+
+[Install]
+WantedBy=multi-user.target
