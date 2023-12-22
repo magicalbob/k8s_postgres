@@ -28,10 +28,10 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:15.4
+          image: postgres:13.11
           env:
             - name: POSTGRES_USER
-              value: sonar
+              value: gitlab
             - name: POSTGRES_PASSWORD
               value: sonar
             - name: POSTGRES_DB
@@ -44,6 +44,13 @@ spec:
               value: gitlabhq_production   # GitLab database name
           ports:
             - containerPort: 5432
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: 4
+            requests:
+              memory: 1Gi
+              cpu: 1
           volumeMounts:
             - name: postgres-data
               mountPath: /var/lib/postgresql/data
