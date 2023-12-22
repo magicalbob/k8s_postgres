@@ -11,4 +11,4 @@ data:
     #         max_connections = 100
     #             shared_buffers = 128MB
     #
-    data_directory = '/postgres-data'
+    data_directory = '/var/lib/postgresql/data'

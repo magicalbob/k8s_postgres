@@ -48,9 +48,14 @@ spec:
             - containerPort: 5432
           volumeMounts:
             - name: postgres-data
-              mountPath: /var/lib/postgresql/data
+              mountPath: /var/lib/postgresql/data # Corrected mountPath
       volumes:
         - name: postgres-data
           persistentVolumeClaim:
             claimName: postgres-pvc
+      # Add ConfigMap reference for PostgreSQL configuration
+      volumes:
+        - name: config-volume
+          configMap:
+            name: postgres-config
 
