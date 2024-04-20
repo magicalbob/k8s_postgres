@@ -59,6 +59,7 @@ kubectl apply -f postgresql.deployment.yml
 
 # create config map
 kubectl apply -f postgresql.configmap.yml
+kubectl wait --for=condition=available deployment.apps/postgres -n postgresql --timeout=300s
 
 # create service
 kubectl apply -f postgresql.service.yml
