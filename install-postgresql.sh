@@ -46,10 +46,10 @@ fi
 # sort out persistent volume
 if [ "X${USE_KIND}" == "XX" ]; then
   export NODE_NAME=$(kubectl get nodes |grep control-plane|cut -d\  -f1|head -1)
-  envsubst < postgresql.pv.kind.template >> postgresql.pv.yml
+  envsubst < postgresql.pv.kind.template > postgresql.pv.yml
 else
   export NODE_NAME=$(kubectl get nodes | grep -v ^NAME|grep -v control-plane|cut -d\  -f1|head -1)
-  envsubst < postgresql.pv.linux.template >> postgresql.pv.yml
+  envsubst < postgresql.pv.linux.template > postgresql.pv.yml
   echo mkdir -p ${PWD}/postgresql-data|ssh -o StrictHostKeyChecking=no ${NODE_NAME}
 fi
 kubectl apply -f postgresql.pv.yml
