@@ -1,0 +1,163 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: postgresql-new
+data:
+  postgresql.conf: |
+    # Add your custom postgresql.conf configuration here
+    # Example:
+    # max_connections = 100
+    # shared_buffers = 128MB
+    data_directory = '/var/lib/postgresql/data'
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: postgres-credentials
+  namespace: postgresql-new
+type: Opaque
+stringData:
+  postgres-user: gitlab
+  postgres-password: gitlabhq_production
+  gitlab-password: LetMeIn9
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: postgresql-new
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+  clusterIP: None # Headless service for StatefulSet
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-external
+  namespace: postgresql-new
+spec:
+  selector:
+    app: postgres
+  ports:
+    - name: postgres
+      protocol: TCP
+      port: 5432
+      targetPort: 5432
+  type: ClusterIP # Change to NodePort or LoadBalancer if external access is needed
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: postgresql-new
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      # Use pod anti-affinity to spread pods across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - postgres
+              topologyKey: "kubernetes.io/hostname"
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: postgres
+          image: docker.ellisbs.co.uk:5190/postgres:14.13
+          env:
+            - name: POSTGRES_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: postgres-password
+            - name: POSTGRES_DB
+              value: gitlabhq_production
+            - name: POSTGRES_USER_GITLAB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: postgres-user
+            - name: POSTGRES_PASSWORD_GITLAB
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-credentials
+                  key: gitlab-password
+            - name: POSTGRES_DB_GITLAB
+              value: gitlabhq_production
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - containerPort: 5432
+              name: postgres
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+            - name: config
+              mountPath: /docker-entrypoint-initdb.d/postgresql.conf
+              subPath: postgresql.conf
+          resources:
+            limits:
+              memory: 2Gi
+              cpu: 4
+            requests:
+              memory: 1Gi
+              cpu: 1
+          readinessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - gitlab
+                - -d
+                - gitlabhq_production
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready
+                - -U
+                - gitlab
+                - -d
+                - gitlabhq_production
+            initialDelaySeconds: 30
+            periodSeconds: 15
+      volumes:
+        - name: config
+          configMap:
+            name: postgres-config
+  volumeClaimTemplates:
+    - metadata:
+        name: postgres-data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: longhorn-postgres # Use our custom Longhorn StorageClass
+        resources:
+          requests:
+            storage: 10Gi
