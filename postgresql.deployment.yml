@@ -28,14 +28,14 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres:13.11
+          image: docker.ellisbs.co.uk:5190/postgres:14.13
           env:
             - name: POSTGRES_USER
               value: gitlab
             - name: POSTGRES_PASSWORD
-              value: sonar
+              value: gitlabhq_production   
             - name: POSTGRES_DB
-              value: sonar
+              value: gitlabhq_production   # GitLab database name
             - name: POSTGRES_USER_GITLAB  # Add a new environment variable for GitLab user
               value: gitlab               # GitLab username
             - name: POSTGRES_PASSWORD_GITLAB  # Add a new environment variable for GitLab user's password
